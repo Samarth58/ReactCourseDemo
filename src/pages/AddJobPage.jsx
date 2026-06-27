@@ -15,7 +15,7 @@ const AddJobPage = ({ addJobSubmit }) => {
 
   const navigate = useNavigate();
 
-  const submitForm = (e) => {
+  const submitForm = async (e) => {
     e.preventDefault();
 
     const newJob = {
@@ -32,7 +32,10 @@ const AddJobPage = ({ addJobSubmit }) => {
       },
     };
 
-    addJobSubmit(newJob);
+    const result = await addJobSubmit(newJob);
+    // result === false means demo mode — toast already shown in App.jsx
+    if (result === false) return;
+
     toast.success('Job Added Successfully');
     return navigate('/jobs');
   };

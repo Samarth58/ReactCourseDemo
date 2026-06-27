@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Spinner from '../components/Spinner.jsx';
 import EmptyState from '../components/EmptyState.jsx';
+import staticJobsData from '../data/jobs.json';
 
 const EditJobPage = ({ updateJobSubmit }) => {
   const { id } = useParams();
@@ -27,11 +28,8 @@ const EditJobPage = ({ updateJobSubmit }) => {
         setLoading(true);
         setFetchError(false);
         const res = await fetch(`/api/jobs/${id}`);
-        if (!res.ok) {
-          throw new Error('Failed to fetch job details');
-        }
+        if (!res.ok) throw new Error('API unavailable');
         const data = await res.json();
-        
         setTitle(data.title);
         setType(data.type);
         setLocation(data.location);
@@ -42,8 +40,21 @@ const EditJobPage = ({ updateJobSubmit }) => {
         setContactEmail(data.company.contactEmail);
         setContactPhone(data.company.contactPhone || '');
       } catch (error) {
-        console.error('Error fetching job for edit:', error);
-        setFetchError(true);
+        // API unavailable — fall back to static JSON
+        const job = staticJobsData.jobs.find((j) => String(j.id) === String(id));
+        if (job) {
+          setTitle(job.title);
+          setType(job.type);
+          setLocation(job.location);
+          setDescription(job.description);
+          setSalary(job.salary);
+          setCompanyName(job.company.name);
+          setCompanyDescription(job.company.description || '');
+          setContactEmail(job.company.contactEmail);
+          setContactPhone(job.company.contactPhone || '');
+        } else {
+          setFetchError(true);
+        }
       } finally {
         setLoading(false);
       }
@@ -52,7 +63,7 @@ const EditJobPage = ({ updateJobSubmit }) => {
     fetchJob();
   }, [id]);
 
-  const submitForm = (e) => {
+  const submitForm = async (e) => {
     e.preventDefault();
 
     const updatedJob = {
@@ -70,7 +81,10 @@ const EditJobPage = ({ updateJobSubmit }) => {
       },
     };
 
-    updateJobSubmit(updatedJob);
+    const result = await updateJobSubmit(updatedJob);
+    // result === false means demo mode — toast already shown in App.jsx
+    if (result === false) return;
+
     toast.success('Job Updated Successfully');
     return navigate(`/jobs/${id}`);
   };
